@@ -1,4 +1,3 @@
-from functools import lru_cache
 from pathlib import Path
 
 from langchain_community.vectorstores import FAISS
@@ -6,30 +5,38 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 from config import DEBUG
 
+
+# ============================================================
+# Paths
+# ============================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 VECTORSTORE_PATH = BASE_DIR / "vectorstore"
 
 
-@lru_cache(maxsize=1)
-def get_vectorstore():
-    print("Loading embedding model...")
+# ============================================================
+# Embeddings
+# ============================================================
 
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 
-    print("Loading FAISS index...")
 
-    vectorstore = FAISS.load_local(
-        str(VECTORSTORE_PATH),
-        embeddings,
-        allow_dangerous_deserialization=True,
-    )
+# ============================================================
+# Load FAISS
+# ============================================================
 
-    print("Vectorstore ready.")
+vectorstore = FAISS.load_local(
+    str(VECTORSTORE_PATH),
+    embeddings,
+    allow_dangerous_deserialization=True,
+)
 
-    return vectorstore
 
+# ============================================================
+# Skill Keywords
+# ============================================================
 
 TECH_KEYWORDS = [
     "java",
@@ -50,13 +57,16 @@ TECH_KEYWORDS = [
 ]
 
 
+# ============================================================
+# Retrieve Assessments
+# ============================================================
+
 def retrieve_assessments(
     query: str,
     language: str | None = None,
     job_level: str | None = None,
     top_k: int = 5,
 ):
-    vectorstore = get_vectorstore()
 
     docs = vectorstore.max_marginal_relevance_search(
         query=query,
@@ -73,6 +83,7 @@ def retrieve_assessments(
     for doc in docs:
 
         meta = doc.metadata
+
         name = meta.get("name", "")
 
         if name in seen:
@@ -91,21 +102,27 @@ def retrieve_assessments(
             continue
 
         score = 0
+
         page = doc.page_content.lower()
 
+        # Technical skill matching
         for skill in TECH_KEYWORDS:
             if skill in query_lower and skill in page:
                 score += 3
 
+        # Prefer technical assessments
         if "Knowledge & Skills" in keys:
             score += 3
 
+        # Match job level
         if job_level and job_level in job_levels:
             score += 2
 
+        # Match language
         if language and language in languages:
             score += 1
 
+        # Exact role match bonus
         if any(word in page for word in query_lower.split()):
             score += 2
 
@@ -148,7 +165,10 @@ URL:
 
         ranked.append((score, context, recommendation))
 
-    ranked.sort(key=lambda x: x[0], reverse=True)
+    ranked.sort(
+        key=lambda x: x[0],
+        reverse=True,
+    )
 
     context = ""
     recommendations = []
@@ -158,6 +178,36 @@ URL:
         recommendations.append(rec)
 
     if DEBUG:
-        print(f"Retrieved {len(recommendations)} assessments.")
+
+        print("\n" + "=" * 70)
+        print("Retriever Query")
+        print("=" * 70)
+        print(query)
+
+        print("\nTop Recommendations\n")
+
+        for rec in recommendations:
+            print(f"- {rec['name']}")
+
+        print("=" * 70)
 
     return context, recommendations
+
+
+# ============================================================
+# Test
+# ============================================================
+
+if __name__ == "__main__":
+
+    context, recommendations = retrieve_assessments(
+        query="Senior Java Backend Developer with Spring Boot SQL Docker AWS",
+        top_k=5,
+    )
+
+    print(context)
+
+    print("\nReturned Recommendations\n")
+
+    for item in recommendations:
+        print(item)
