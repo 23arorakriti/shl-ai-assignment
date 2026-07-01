@@ -1,14 +1,2 @@
-fastapi
-uvicorn
-python-dotenv
-langchain
-langchain-community
-langchain-google-genai
-google-generativeai
-faiss-cpu
-sentence-transformers
-pandas
-pydantic
-langchain-huggingface
-streamlit
-requests
+streamlit==1.46.1
+requests==2.32.3
