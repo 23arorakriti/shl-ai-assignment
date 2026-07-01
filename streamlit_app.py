@@ -9,7 +9,7 @@ import streamlit as st
 API_URL = os.getenv(
     "API_URL",
     # "http://127.0.0.1:8000/chat",
-    "https://shl-assessment-recommender.hf.space/api/chat",
+    "https://panda0987-shl-project.hf.space/chat",
 )
 
 st.set_page_config(
