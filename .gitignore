@@ -10,7 +10,7 @@ __pycache__/
 
 # VS Code
 .vscode/
-
+vectorstore/
 # OS
 .DS_Store
 Thumbs.db
